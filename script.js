@@ -12,6 +12,42 @@
     canvas.attr("width", width);
     canvas.attr("height", height);
 
+    // Intento de reproducir dos audios de fondo en carga (coloca los archivos en Love_files/)
+    var bgAudio = document.getElementById('bg-audio');
+    var bgAudio2 = document.getElementById('bg-audio-2');
+
+    function enableAudioOnInteraction() {
+        var handler = function () {
+            try { if (bgAudio) bgAudio.play().catch(function(e){console.log('play error bgAudio:', e);}); } catch (e) {}
+            try { if (bgAudio2) bgAudio2.play().catch(function(e){console.log('play error bgAudio2:', e);}); } catch (e) {}
+            document.removeEventListener('click', handler);
+            document.removeEventListener('touchstart', handler);
+        };
+        document.addEventListener('click', handler, { once: true });
+        document.addEventListener('touchstart', handler, { once: true });
+    }
+
+    if (bgAudio) bgAudio.volume = 0.5;
+    if (bgAudio2) bgAudio2.volume = 0.5;
+
+    try {
+        var p1 = bgAudio ? bgAudio.play() : undefined;
+        var p2 = bgAudio2 ? bgAudio2.play() : undefined;
+
+        var blocked = false;
+        if (p1 !== undefined) {
+            p1.catch(function (e) { console.log('Autoplay bloqueado o error bgAudio:', e); blocked = true; });
+        }
+        if (p2 !== undefined) {
+            p2.catch(function (e) { console.log('Autoplay bloqueado o error bgAudio2:', e); blocked = true; });
+        }
+
+        // Si el navegador bloqueó el autoplay, intentaremos reproducir ambos al primer gesto del usuario
+        if ((p1 === undefined && p2 === undefined) || blocked) {
+            enableAudioOnInteraction();
+        }
+    } catch (e) { console.log('Error al reproducir audios:', e); enableAudioOnInteraction(); }
+
     var opts = {
         seed: {
             x: width / 2 - 20,
