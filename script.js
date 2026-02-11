@@ -12,57 +12,13 @@
     canvas.attr("width", width);
     canvas.attr("height", height);
 
-    // Intento de reproducir dos audios de fondo en carga (archivos en Love_files/)
+    // Audio de fondo
     var bgAudio = document.getElementById('bg-audio');
     var bgAudio2 = document.getElementById('bg-audio-2');
 
     // Configurar volumen
     if (bgAudio) bgAudio.volume = 0.5;
     if (bgAudio2) bgAudio2.volume = 0.5;
-
-    // Estrategia para móviles: reproducir silenciado -> luego desmutear en interacción
-    function playAudiosMuted() {
-        try { if (bgAudio) { bgAudio.muted = true; bgAudio.play().catch(function(){}); } } catch(e){}
-        try { if (bgAudio2) { bgAudio2.muted = true; bgAudio2.play().catch(function(){}); } } catch(e){}
-    }
-
-    function unmuteBoth() {
-        try { if (bgAudio) { bgAudio.muted = false; } } catch(e){}
-        try { if (bgAudio2) { bgAudio2.muted = false; } } catch(e){}
-    }
-
-    // Reintentar desmutear en eventos de usuario/visibilidad
-    function setupUnmuteOnInteraction() {
-        var isUnmuted = false;
-        
-        var tryUnmute = function() {
-            if (!isUnmuted) {
-                unmuteBoth();
-                isUnmuted = true;
-                // Limpiar listeners después de desmuutear
-                document.removeEventListener('click', handleInteraction);
-                document.removeEventListener('touchstart', handleInteraction);
-                document.removeEventListener('scroll', handleInteraction);
-            }
-        };
-
-        var handleInteraction = function() { tryUnmute(); };
-
-        // Reintentar en focus/visibility
-        document.addEventListener('visibilitychange', function(){ if (!document.hidden) tryUnmute(); });
-        window.addEventListener('focus', function(){ tryUnmute(); });
-        
-        // Reintentar en primer click/touch/scroll
-        document.addEventListener('click', handleInteraction);
-        document.addEventListener('touchstart', handleInteraction);
-        document.addEventListener('scroll', handleInteraction);
-    }
-
-    // Reproducir silenciado al cargar (funciona hasta en móviles muy restrictivos)
-    playAudiosMuted();
-    
-    // Intentar desmutear inmediatamente, luego en interacciones
-    setTimeout(function(){ unmuteBoth(); setupUnmuteOnInteraction(); }, 100);
 
     var opts = {
         seed: {
@@ -114,6 +70,10 @@
             canvas.unbind("click");
             canvas.unbind("mousemove");
             canvas.removeClass('hand');
+            
+            // Reproducir audios al hacer clic en el corazón
+            try { if (bgAudio) { bgAudio.muted = false; bgAudio.play().catch(function(){}); } } catch(e){}
+            try { if (bgAudio2) { bgAudio2.muted = false; bgAudio2.play().catch(function(){}); } } catch(e){}
         }
     }).mousemove(function (e) {
         var offset = canvas.offset(), x, y;
