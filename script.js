@@ -12,41 +12,43 @@
     canvas.attr("width", width);
     canvas.attr("height", height);
 
-    // Intento de reproducir dos audios de fondo en carga (coloca los archivos en Love_files/)
+    // Intento de reproducir dos audios de fondo en carga (archivos en Love_files/)
     var bgAudio = document.getElementById('bg-audio');
     var bgAudio2 = document.getElementById('bg-audio-2');
 
-    function enableAudioOnInteraction() {
-        var handler = function () {
-            try { if (bgAudio) bgAudio.play().catch(function(e){console.log('play error bgAudio:', e);}); } catch (e) {}
-            try { if (bgAudio2) bgAudio2.play().catch(function(e){console.log('play error bgAudio2:', e);}); } catch (e) {}
-            document.removeEventListener('click', handler);
-            document.removeEventListener('touchstart', handler);
-        };
-        document.addEventListener('click', handler, { once: true });
-        document.addEventListener('touchstart', handler, { once: true });
-    }
-
+    // Configurar volumen
     if (bgAudio) bgAudio.volume = 0.5;
     if (bgAudio2) bgAudio2.volume = 0.5;
 
-    try {
-        var p1 = bgAudio ? bgAudio.play() : undefined;
-        var p2 = bgAudio2 ? bgAudio2.play() : undefined;
+    // Desmuutear y reproducir cuando sea posible
+    function unmuteBoth() {
+        try { if (bgAudio) { bgAudio.muted = false; bgAudio.play().catch(function(){}); } } catch(e){}
+        try { if (bgAudio2) { bgAudio2.muted = false; bgAudio2.play().catch(function(){}); } } catch(e){}
+    }
 
-        var blocked = false;
-        if (p1 !== undefined) {
-            p1.catch(function (e) { console.log('Autoplay bloqueado o error bgAudio:', e); blocked = true; });
-        }
-        if (p2 !== undefined) {
-            p2.catch(function (e) { console.log('Autoplay bloqueado o error bgAudio2:', e); blocked = true; });
-        }
+    // Reintentar desmutear en eventos de usuario/visibilidad
+    function setupUnmuteRetry() {
+        var tryUnmute = function() { unmuteBoth(); };
+        
+        // Reintentar en focus/visibility
+        document.addEventListener('visibilitychange', function(){ if (!document.hidden) tryUnmute(); });
+        window.addEventListener('focus', function(){ tryUnmute(); });
+        
+        // Reintentar en primer click/touch sin bloquear
+        var firstInteraction = function() {
+            tryUnmute();
+            document.removeEventListener('click', firstInteraction);
+            document.removeEventListener('touchstart', firstInteraction);
+        };
+        document.addEventListener('click', firstInteraction);
+        document.addEventListener('touchstart', firstInteraction);
+    }
 
-        // Si el navegador bloqueó el autoplay, intentaremos reproducir ambos al primer gesto del usuario
-        if ((p1 === undefined && p2 === undefined) || blocked) {
-            enableAudioOnInteraction();
-        }
-    } catch (e) { console.log('Error al reproducir audios:', e); enableAudioOnInteraction(); }
+    // Intentar desmuutear y reproducir al cargar
+    unmuteBoth();
+    
+    // Preparar reintentos por si falla el inicial
+    setTimeout(function(){ setupUnmuteRetry(); }, 100);
 
     var opts = {
         seed: {
