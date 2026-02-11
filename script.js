@@ -20,35 +20,49 @@
     if (bgAudio) bgAudio.volume = 0.5;
     if (bgAudio2) bgAudio2.volume = 0.5;
 
-    // Desmuutear y reproducir cuando sea posible
+    // Estrategia para móviles: reproducir silenciado -> luego desmutear en interacción
+    function playAudiosMuted() {
+        try { if (bgAudio) { bgAudio.muted = true; bgAudio.play().catch(function(){}); } } catch(e){}
+        try { if (bgAudio2) { bgAudio2.muted = true; bgAudio2.play().catch(function(){}); } } catch(e){}
+    }
+
     function unmuteBoth() {
-        try { if (bgAudio) { bgAudio.muted = false; bgAudio.play().catch(function(){}); } } catch(e){}
-        try { if (bgAudio2) { bgAudio2.muted = false; bgAudio2.play().catch(function(){}); } } catch(e){}
+        try { if (bgAudio) { bgAudio.muted = false; } } catch(e){}
+        try { if (bgAudio2) { bgAudio2.muted = false; } } catch(e){}
     }
 
     // Reintentar desmutear en eventos de usuario/visibilidad
-    function setupUnmuteRetry() {
-        var tryUnmute = function() { unmuteBoth(); };
+    function setupUnmuteOnInteraction() {
+        var isUnmuted = false;
         
+        var tryUnmute = function() {
+            if (!isUnmuted) {
+                unmuteBoth();
+                isUnmuted = true;
+                // Limpiar listeners después de desmuutear
+                document.removeEventListener('click', handleInteraction);
+                document.removeEventListener('touchstart', handleInteraction);
+                document.removeEventListener('scroll', handleInteraction);
+            }
+        };
+
+        var handleInteraction = function() { tryUnmute(); };
+
         // Reintentar en focus/visibility
         document.addEventListener('visibilitychange', function(){ if (!document.hidden) tryUnmute(); });
         window.addEventListener('focus', function(){ tryUnmute(); });
         
-        // Reintentar en primer click/touch sin bloquear
-        var firstInteraction = function() {
-            tryUnmute();
-            document.removeEventListener('click', firstInteraction);
-            document.removeEventListener('touchstart', firstInteraction);
-        };
-        document.addEventListener('click', firstInteraction);
-        document.addEventListener('touchstart', firstInteraction);
+        // Reintentar en primer click/touch/scroll
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction);
+        document.addEventListener('scroll', handleInteraction);
     }
 
-    // Intentar desmuutear y reproducir al cargar
-    unmuteBoth();
+    // Reproducir silenciado al cargar (funciona hasta en móviles muy restrictivos)
+    playAudiosMuted();
     
-    // Preparar reintentos por si falla el inicial
-    setTimeout(function(){ setupUnmuteRetry(); }, 100);
+    // Intentar desmutear inmediatamente, luego en interacciones
+    setTimeout(function(){ unmuteBoth(); setupUnmuteOnInteraction(); }, 100);
 
     var opts = {
         seed: {
